@@ -1,6 +1,6 @@
-import pool from "../config/database";
-import { NameHistory, NameChangeRequest, HistoryStatus } from "../types/history";
-import { AppError } from "../utils/errorHandler";
+import pool from "../config/database.js";
+import { NameHistory, NameChangeRequest, HistoryStatus } from "../types/history.js";
+import { AppError } from "../utils/errorHandler.js";
 
 export class NameHistoryService {
   async createHistory(request: NameChangeRequest): Promise<NameHistory> {
@@ -12,9 +12,8 @@ export class NameHistoryService {
         VALUES (?, ?, ?, 'pending', ?)`,
         [request.type, request.name_before, request.name_after, request.target_id]
       );
-
       return {
-        id: result.insertId,
+        id: (result[0] as any).insertId,
         ...request,
         status: "pending" as HistoryStatus,
         created_at: new Date(),
@@ -29,7 +28,7 @@ export class NameHistoryService {
     const conn = await pool.getConnection();
     try {
       const offset = (page - 1) * limit;
-      const [histories, [{ total }]] = await Promise.all([
+      const [histories] = await Promise.all([
         conn.query(
           `SELECT * FROM tbl_manual_name_history 
           ORDER BY created_at DESC LIMIT ? OFFSET ?`,
@@ -44,7 +43,7 @@ export class NameHistoryService {
           created_at: new Date(h.created_at),
           updated_at: new Date(h.updated_at),
         })),
-        total,
+        total: (histories[0] as any).total,
       };
     } finally {
       conn.release();
@@ -61,7 +60,7 @@ export class NameHistoryService {
         [status, id]
       );
 
-      if (result.affectedRows === 0) {
+      if ((result[0] as any).affectedRows === 0) {
         throw new AppError("수정 이력을 찾을 수 없습니다.", 404);
       }
     } finally {
